@@ -21,7 +21,8 @@
   ],
   "dependencies": {
     "@raycast/api": "^1.41.1",
-    "got": "^12.5.2"
+    "got": "^12.5.2",
+    "node-html-parser": "^6.1.4"
   },
   "devDependencies": {
     "@types/node": "16.10.3",

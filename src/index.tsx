@@ -1,6 +1,7 @@
 import { ActionPanel, Detail, List, Action, getPreferenceValues } from "@raycast/api";
 import got from "got";
 import { useState } from "react";
+import { parse } from 'node-html-parser';
 
 interface State {
   crates: CrateDesc[];
@@ -12,6 +13,12 @@ interface CrateDesc {
   name: string;
   version: string;
   desc: string;
+  url?: string;
+}
+
+interface SymbolDesc {
+  name: string;
+  href: string;
 }
 
 export default function Command() {
@@ -25,15 +32,21 @@ export default function Command() {
     console.log("splited: ", splited);
 
     if (splited.length > 1) {
+      const crate = splited[0];
       const symbol = splited[1];
-      console.log("state before assign", state.symbol);
-      state.symbol = symbol;
-      console.log("state after assign", state.symbol);
-      setState(state);
-      // setState({ crates: state.crates, symbol: symbol, curr_select: state.curr_select })
-    }
+      const symbolList: Array<SymbolDesc> = await buildSymbolList(crate);
+      var results: Array<CrateDesc> = [];
+      for (let i = 0; i < symbolList.length; i++) {
+        const item = symbolList[i];
+        if (item.name.includes(symbol)) {
+          results.push({ name: item.name, version: "", desc: item.href, url: item.href });
+        }
+      }
 
-    await searchCrate(crate);
+      setState({ crates: results, symbol: symbol, curr_select: state.curr_select });
+    } else {
+      await searchCrate(crate);
+    }
   }
 
   async function searchCrate(crate: string) {
@@ -49,10 +62,37 @@ export default function Command() {
       }
     });
 
-    state.crates = crates;
-    console.log("data: ", crates.length);
     setState({ crates: crates, symbol: state.symbol, curr_select: state.curr_select })
-    // setState(state);
+  }
+
+  async function requestResourceSuffix(crate: string) {
+    const body = (await got.get(`https://docs.rs/${crate}/latest/${crate}`)).body;
+    const root = parse(body);
+    const rustdocVars = root.getElementById("rustdoc-vars");
+    const dataResourceSuffix = rustdocVars.getAttribute("data-resource-suffix");
+    return dataResourceSuffix;
+  }
+
+  // don't know how to use this...
+  async function buildSearchIndex(crate: string, suffix: string) {
+    const searchIndexRaw = (await got.get(`https://docs.rs/${crate}/latest/search-index${suffix}.js`)).body;
+    let bodyLine = searchIndexRaw.split("\n")[1];
+    const searchIndex = JSON.parse("{" + bodyLine.substring(0, bodyLine.length - 1) + "\n}");
+  }
+
+  async function buildSymbolList(crate: string) {
+    const itemPrefix = `https://docs.rs/${crate}/latest/${crate}/`;
+
+    const body = (await got.get(`https://docs.rs/${crate}/latest/${crate}/all.html`)).body;
+    const root = parse(body);
+    const mainContent = root.getElementById("main-content");
+    const list = mainContent.getElementsByTagName("a").map(item => {
+      return {
+        name: item.firstChild.toString(),
+        href: itemPrefix + item.getAttribute("href"),
+      }
+    });
+    return list
   }
 
   function changeSelect(select: string | null) {
@@ -66,10 +106,8 @@ export default function Command() {
   function getUrl() {
     let crateName = state.curr_select;
 
-    console.log("symbol: ", state.symbol);
-
     if (state.symbol != undefined && state.symbol.length > 0) {
-      return `https://docs.rs/${crateName}/latest/${crateName}/?search=${state.symbol}`
+      return state.crates.find((item) => item.name == crateName)?.url || "";
     } else {
       return `https://docs.rs/${crateName}`
     }
