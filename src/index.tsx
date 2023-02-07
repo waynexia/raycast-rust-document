@@ -19,6 +19,7 @@ interface CrateDesc {
 interface SymbolDesc {
   name: string;
   href: string;
+  version: string;
 }
 
 export default function Command() {
@@ -38,8 +39,8 @@ export default function Command() {
       var results: Array<CrateDesc> = [];
       for (let i = 0; i < symbolList.length; i++) {
         const item = symbolList[i];
-        if (item.name.includes(symbol)) {
-          results.push({ name: item.name, version: "", desc: item.href, url: item.href });
+        if (item.name.toLowerCase().includes(symbol.toLowerCase())) {
+          results.push({ name: item.name, version: item.version, desc: item.href, url: item.href });
         }
       }
 
@@ -90,6 +91,7 @@ export default function Command() {
       return {
         name: item.firstChild.toString(),
         href: itemPrefix + item.getAttribute("href"),
+        version: item.parentNode.parentNode.previousSibling.childNodes[0].toString()
       }
     });
     return list
