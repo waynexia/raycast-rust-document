@@ -51,11 +51,11 @@ export default function Command() {
   }
 
   async function searchCrate(crate: string) {
-    const data = await got.get(`https://crates.io/api/v1/crates?page=1&per_page=10&q=${crate}`, {
+    const data: any = await got.get(`https://crates.io/api/v1/crates?page=1&per_page=10&q=${crate}`, {
       parseJson: text => JSON.parse(text)
     }).json();
 
-    const crates: Array<CrateDesc> = data["crates"].map(crate => {
+    const crates: Array<CrateDesc> = data["crates"].map((crate: { [x: string]: any; }) => {
       return {
         name: crate["name"],
         version: crate["newest_version"],
@@ -67,7 +67,8 @@ export default function Command() {
   }
 
   async function requestResourceSuffix(crate: string) {
-    const body = (await got.get(`https://docs.rs/${crate}/latest/${crate}`)).body;
+    let crateUnderscore = replaceUnderScore(crate);
+    const body = (await got.get(`https://docs.rs/${crate}/latest/${crateUnderscore}`)).body;
     const root = parse(body);
     const rustdocVars = root.getElementById("rustdoc-vars");
     const dataResourceSuffix = rustdocVars.getAttribute("data-resource-suffix");
@@ -76,15 +77,17 @@ export default function Command() {
 
   // don't know how to use this...
   async function buildSearchIndex(crate: string, suffix: string) {
-    const searchIndexRaw = (await got.get(`https://docs.rs/${crate}/latest/search-index${suffix}.js`)).body;
+    let crateUnderscore = replaceUnderScore(crate);
+    const searchIndexRaw = (await got.get(`https://docs.rs/${crate}/latest/search-index${crateUnderscore}.js`)).body;
     let bodyLine = searchIndexRaw.split("\n")[1];
     const searchIndex = JSON.parse("{" + bodyLine.substring(0, bodyLine.length - 1) + "\n}");
   }
 
   async function buildSymbolList(crate: string) {
-    const itemPrefix = `https://docs.rs/${crate}/latest/${crate}/`;
+    let crateUnderscore = replaceUnderScore(crate);
+    const itemPrefix = `https://docs.rs/${crate}/latest/${crateUnderscore}/`;
 
-    const body = (await got.get(`https://docs.rs/${crate}/latest/${crate}/all.html`)).body;
+    const body = (await got.get(`https://docs.rs/${crate}/latest/${crateUnderscore}/all.html`)).body;
     const root = parse(body);
     const mainContent = root.getElementById("main-content");
     const list = mainContent.getElementsByTagName("a").map(item => {
@@ -95,6 +98,11 @@ export default function Command() {
       }
     });
     return list
+  }
+
+  // replace `-` with `_`
+  function replaceUnderScore(str: string): string {
+    return str.replace("-", "_");
   }
 
   function changeSelect(select: string | null) {
