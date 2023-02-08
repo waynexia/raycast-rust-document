@@ -3,7 +3,7 @@
   "name": "rust-document",
   "title": "Rust Document",
   "description": "Search Rust document quickly",
-  "icon": "command-icon.png",
+  "icon": "rust.png",
   "author": "waynexia",
   "categories": [
     "Developer Tools",
