@@ -1,6 +1,6 @@
-import { ActionPanel, Detail, List, Action, getPreferenceValues } from "@raycast/api";
+import { ActionPanel, List, Action } from "@raycast/api";
 import got from "got";
-import { useState } from "react";
+import { useState, React } from "react";
 import { parse } from "node-html-parser";
 
 interface State {
@@ -35,15 +35,24 @@ export default function Command() {
       const crate = splited[0];
       const symbol = splited[1];
       const symbolList: Array<SymbolDesc> = await buildSymbolList(crate);
-      var results: Array<CrateDesc> = [];
+      const results: Array<CrateDesc> = [];
       for (let i = 0; i < symbolList.length; i++) {
         const item = symbolList[i];
         if (item.name.toLowerCase().includes(symbol.toLowerCase())) {
-          results.push({ name: item.name, version: item.version, desc: item.href, url: item.href });
+          results.push({
+            name: item.name,
+            version: item.version,
+            desc: item.href,
+            url: item.href,
+          });
         }
       }
 
-      setState({ crates: results, symbol: symbol, curr_select: state.curr_select });
+      setState({
+        crates: results,
+        symbol: symbol,
+        curr_select: state.curr_select,
+      });
     } else {
       await searchCrate(crate);
     }
@@ -56,22 +65,32 @@ export default function Command() {
       })
       .json();
 
-    const crates: Array<CrateDesc> = data["crates"]
-      .map((crate: { [x: string]: any }) => {
+    const crates: Array<CrateDesc> = data["crates"].map(
+      (crate: { [x: string]: any }) => {
         return {
           name: crate["name"],
           version: crate["newest_version"],
           desc: crate["description"],
         };
-      });
-    const activeCrates = crates.filter((crate: { [x: string]: any }) => crate.version !== "0.0.0")
+      }
+    );
+    const activeCrates = crates.filter(
+      (crate: { [x: string]: any }) => crate.version !== "0.0.0"
+    );
 
-    setState({ crates: activeCrates, symbol: state.symbol, curr_select: state.curr_select });
+    setState({
+      crates: activeCrates,
+      symbol: state.symbol,
+      curr_select: state.curr_select,
+    });
   }
 
   async function requestResourceSuffix(crate: string) {
-    let crateUnderscore = replaceUnderScore(crate);
-    const body = (await got.get(`https://docs.rs/${crate}/latest/${crateUnderscore}`)).body;
+    // eslint-disable-line no-unused-vars
+    const crateUnderscore = replaceUnderScore(crate);
+    const body = (
+      await got.get(`https://docs.rs/${crate}/latest/${crateUnderscore}`)
+    ).body;
     const root = parse(body);
     const rustdocVars = root.getElementById("rustdoc-vars");
     const dataResourceSuffix = rustdocVars.getAttribute("data-resource-suffix");
@@ -79,25 +98,37 @@ export default function Command() {
   }
 
   // don't know how to use this...
+  // eslint-disable-line no-unused-vars
   async function buildSearchIndex(crate: string, suffix: string) {
-    let crateUnderscore = replaceUnderScore(crate);
-    const searchIndexRaw = (await got.get(`https://docs.rs/${crate}/latest/search-index${crateUnderscore}.js`)).body;
-    let bodyLine = searchIndexRaw.split("\n")[1];
-    const searchIndex = JSON.parse("{" + bodyLine.substring(0, bodyLine.length - 1) + "\n}");
+    const crateUnderscore = replaceUnderScore(crate);
+    const searchIndexRaw = (
+      await got.get(
+        `https://docs.rs/${crate}/latest/search-index${crateUnderscore}.js`
+      )
+    ).body;
+    const bodyLine = searchIndexRaw.split("\n")[1];
+    const searchIndex = JSON.parse(
+      "{" + bodyLine.substring(0, bodyLine.length - 1) + "\n}"
+    );
   }
 
   async function buildSymbolList(crate: string) {
-    let crateUnderscore = replaceUnderScore(crate);
+    const crateUnderscore = replaceUnderScore(crate);
     const itemPrefix = `https://docs.rs/${crate}/latest/${crateUnderscore}/`;
 
-    const body = (await got.get(`https://docs.rs/${crate}/latest/${crateUnderscore}/all.html`)).body;
+    const body = (
+      await got.get(
+        `https://docs.rs/${crate}/latest/${crateUnderscore}/all.html`
+      )
+    ).body;
     const root = parse(body);
     const mainContent = root.getElementById("main-content");
     const list = mainContent.getElementsByTagName("a").map((item) => {
       return {
         name: item.firstChild.toString(),
         href: itemPrefix + item.getAttribute("href"),
-        version: item.parentNode.parentNode.previousSibling.childNodes[0].toString(),
+        version:
+          item.parentNode.parentNode.previousSibling.childNodes[0].toString(),
       };
     });
     return list;
@@ -112,12 +143,16 @@ export default function Command() {
     if (select !== null) {
       state.curr_select = select;
       console.log("select: ", select);
-      setState({ crates: state.crates, symbol: state.symbol, curr_select: select });
+      setState({
+        crates: state.crates,
+        symbol: state.symbol,
+        curr_select: select,
+      });
     }
   }
 
   function getUrl() {
-    let crateName = state.curr_select;
+    const crateName = state.curr_select;
 
     if (state.symbol != undefined && state.symbol.length > 0) {
       return state.crates.find((item) => item.name == crateName)?.url || "";
