@@ -1,7 +1,9 @@
 import { ActionPanel, List, Action } from "@raycast/api";
 import got from "got";
-import { useState, React } from "react";
+import { useState, React, useEffect } from "react";
 import { parse } from "node-html-parser";
+
+const INPUT_DELAY_MS = 500;
 
 interface State {
   crates: CrateDesc[];
@@ -23,9 +25,17 @@ interface SymbolDesc {
 }
 
 export default function Command() {
+  const [query, setQuery] = useState<string>("");
   const [state, setState] = useState<State>({ crates: [] });
 
-  async function execQuery(query: string) {
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      doExecQuery();
+    }, INPUT_DELAY_MS);
+    return () => clearTimeout(timer);
+  }, [query]);
+
+  async function doExecQuery() {
     const splited = query.split("#");
     const crate = splited[0];
 
@@ -162,7 +172,10 @@ export default function Command() {
   }
 
   return (
-    <List onSearchTextChange={execQuery} onSelectionChange={changeSelect}>
+    <List
+      onSearchTextChange={(query) => setQuery(query)}
+      onSelectionChange={changeSelect}
+    >
       {state.crates.map((crate) => (
         <List.Item
           title={crate.name}
