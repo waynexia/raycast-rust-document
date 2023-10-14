@@ -178,6 +178,7 @@ export default function Command() {
     >
       {state.crates.map((crate) => (
         <List.Item
+          key={crate.name}
           title={crate.name}
           id={crate.name}
           subtitle={crate.desc}
